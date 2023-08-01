@@ -1,0 +1,6 @@
+file_name = '' 
+linkedin_username = '' 
+linkedin_password = ''
+keywords = '' 
+ignore_list = ''
+till_page = ''
