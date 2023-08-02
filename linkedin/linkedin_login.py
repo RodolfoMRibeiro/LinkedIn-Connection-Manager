@@ -14,13 +14,22 @@ class LinkedInLogin:
         self.driver = driver
 
     def login(self):
+        self._navigate_to_login_page()
+        self._enter_credentials_and_submit()
+
+    def _navigate_to_login_page(self):
         self.driver.get(LINKEDIN_LOGIN_URL)
         WebDriverWait(self.driver, WAIT_TIME_LONG).until(EC.presence_of_element_located((By.ID, 'username')))
-        self.driver.find_element(By.ID, 'username').send_keys(parameters.linkedin_username)
-        time.sleep(WAIT_TIME_SHORT)
-        self.driver.find_element(By.ID, 'password').send_keys(parameters.linkedin_password)
-        self.driver.find_element(By.XPATH, '//*[@type="submit"]').click()
 
-    def _wait_for_user_confirmation(self):
-        if input("Can we proceed (yes / no)? ").lower() not in "yes":
+    def _enter_credentials_and_submit(self):
+        username_input = self.driver.find_element(By.ID, 'username')
+        username_input.send_keys(parameters.linkedin_username)
+        time.sleep(WAIT_TIME_SHORT)
+        password_input = self.driver.find_element(By.ID, 'password')
+        password_input.send_keys(parameters.linkedin_password)
+        submit_button = self.driver.find_element(By.XPATH, '//*[@type="submit"]')
+        submit_button.click()
+
+    def confirm_user_action(self):
+        if input("Can we proceed (yes / no)? ").lower() != "yes":
             os._exit(1)

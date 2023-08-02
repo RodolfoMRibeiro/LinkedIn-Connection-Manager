@@ -2,16 +2,17 @@ import csv
 import os.path
 import time
 import parameters
-from linkedin_driver import LinkedInDriver 
+import random
+from linkedin.linkedin_driver import LinkedInDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-WAIT_TIME_SHORT = 10
-WAIT_TIME_LONG = 20
+WAIT_TIME_SHORT = 3
+WAIT_TIME_LONG = 5
 
 class LinkedInScraper:
     linkedinDriver: LinkedInDriver
-    
+
     def __init__(self, linkedinDriver: LinkedInDriver):
         self.linkedinDriver = linkedinDriver
         self.writer = None
@@ -57,7 +58,7 @@ class LinkedInScraper:
             self.print_sent(index, text)
         except Exception as e:
             self.print_error(index, text)
-        time.sleep(WAIT_TIME_SHORT)
+        time.sleep(random.randint(WAIT_TIME_SHORT, WAIT_TIME_LONG * WAIT_TIME_SHORT))
 
     def print_ignored(self, index, text):
         print("%s) IGNORED: %s" % (index, text))

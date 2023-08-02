@@ -25,12 +25,13 @@ class LinkedInDriver:
         time.sleep(WAIT_TIME_SHORT)
 
     def get_search_results(self, page):
-            query_url = f'https://www.linkedin.com/search/results/people/?keywords={parameters.keywords}&origin=GLOBAL_SEARCH_HEADER&page={page}'
-            self.driver.get(query_url)
-            WebDriverWait(self.driver, WAIT_TIME_LONG).until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'reusable-search__result-container'))
-            )
-            return self.driver.find_elements(By.CLASS_NAME, 'reusable-search__result-container')
+        query_url = self._build_query_url(page)
+        self.driver.get(query_url)
+        WebDriverWait(self.driver, WAIT_TIME_LONG).until(EC.presence_of_element_located((By.CLASS_NAME, 'reusable-search__result-container')))
+        return self.driver.find_elements(By.CLASS_NAME, 'reusable-search__result-container')
+
+    def _build_query_url(self, page):
+        return f'https://www.linkedin.com/search/results/people/?keywords={parameters.keywords}&origin=GLOBAL_SEARCH_HEADER&page={page}'
 
     def close_driver(self):
         self.driver.quit()
