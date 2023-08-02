@@ -20,7 +20,6 @@ class LinkedInLogin:
         time.sleep(WAIT_TIME_SHORT)
         self.driver.find_element(By.ID, 'password').send_keys(parameters.linkedin_password)
         self.driver.find_element(By.XPATH, '//*[@type="submit"]').click()
-        self._wait_for_user_confirmation()
 
     def _wait_for_user_confirmation(self):
         if input("Can we proceed (yes / no)? ").lower() not in "yes":
