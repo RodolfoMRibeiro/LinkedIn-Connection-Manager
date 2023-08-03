@@ -18,7 +18,7 @@ def main():
 
         for page in range(1, parameters.till_page + 1):
             print(f'\nINFO: Checking on page {page}')
-            linkedin_urls = scraper.get_search_results(page)
+            linkedin_urls = scraper.linkedinDriver.get_search_results(page)
             print(f'INFO: {len(linkedin_urls)} connections found on page {page}')
             scraper.process_results(linkedin_urls, ignore_list)
 

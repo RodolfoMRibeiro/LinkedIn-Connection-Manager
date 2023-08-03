@@ -34,21 +34,25 @@ class LinkedInScraper:
                 self.process_connection_action(result, index, text)
 
     def process_connection_action(self, result, index, text):
-        connection_action = result.find_elements(By.CLASS_NAME, 'artdeco-button__text')
-        if not connection_action:
-            self.print_cant(index, text)
-            return
-
-        connection = connection_action[0]
-        if connection.text == 'Connect':
-            self.send_connection_request(connection, index, text)
-        elif connection.text == 'Pending':
-            self.print_pending(index, text)
-        else:
-            if text:
+        try:
+            connection_action = result.find_elements(By.CLASS_NAME, 'artdeco-button__text')
+            if not connection_action:
                 self.print_cant(index, text)
+                return
+
+            connection = connection_action[0]
+            if connection.text == 'Connect':
+                self.send_connection_request(connection, index, text)
+            elif connection.text == 'Pending':
+                self.print_pending(index, text)
             else:
-                self.print_error(index)
+                if text:
+                    self.print_cant(index, text)
+                else:
+                    self.print_error(index)
+        except:
+            print("something went wrong when processing the request")
+            return
 
     def send_connection_request(self, connection, index, text):
         try:
@@ -58,7 +62,7 @@ class LinkedInScraper:
             self.print_sent(index, text)
         except Exception as e:
             self.print_error(index, text)
-        time.sleep(random.randint(WAIT_TIME_SHORT, WAIT_TIME_LONG * WAIT_TIME_SHORT))
+        time.sleep(random.randint(WAIT_TIME_SHORT, WAIT_TIME_LONG))
 
     def print_ignored(self, index, text):
         print("%s) IGNORED: %s" % (index, text))
