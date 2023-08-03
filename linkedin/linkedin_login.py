@@ -29,7 +29,3 @@ class LinkedInLogin:
         password_input.send_keys(parameters.linkedin_password)
         submit_button = self.driver.find_element(By.XPATH, '//*[@type="submit"]')
         submit_button.click()
-
-    def confirm_user_action(self):
-        if input("Can we proceed (yes / no)? ").lower() != "yes":
-            os._exit(1)

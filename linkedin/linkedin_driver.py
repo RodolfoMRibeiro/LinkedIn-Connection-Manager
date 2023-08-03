@@ -18,12 +18,6 @@ class LinkedInDriver:
     def initialize_driver(self):
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
-    def scroll_to_end(self):
-        html = self.driver.find_element(By.TAG_NAME, 'html')
-        html.send_keys(Keys.END)
-        WebDriverWait(self.driver, WAIT_TIME_LONG).until(EC.presence_of_element_located((By.TAG_NAME, 'footer')))
-        time.sleep(WAIT_TIME_SHORT)
-
     def get_search_results(self, page):
         query_url = self._build_query_url(page)
         self.driver.get(query_url)
