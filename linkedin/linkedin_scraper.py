@@ -58,6 +58,7 @@ class LinkedInScraper:
         try:
             connection.click()
             sendButton = self.linkedinDriver.driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Send')]")
+            time.sleep(WAIT_TIME_SHORT)
             sendButton.click()
             self.print_sent(index, text)
         except Exception as e:
