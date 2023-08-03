@@ -66,7 +66,7 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 ## Contact
 
-If you have any questions or feedback, feel free to contact us at example@email.com.
+If you have any questions or feedback, feel free to contact me at rodolfomarqribeiro@gmail.com.
 
 ---
 
