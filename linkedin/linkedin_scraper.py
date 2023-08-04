@@ -1,7 +1,4 @@
-import csv
-import os.path
 import time
-import parameters
 import random
 from linkedin.linkedin_driver import LinkedInDriver
 from linkedin.csv_writer import CSVWriter
