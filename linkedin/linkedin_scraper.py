@@ -4,6 +4,7 @@ import time
 import parameters
 import random
 from linkedin.linkedin_driver import LinkedInDriver
+from linkedin.csv_writer import CSVWriter
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
@@ -12,18 +13,11 @@ WAIT_TIME_LONG = 5
 
 class LinkedInScraper:
     linkedinDriver: LinkedInDriver
-
-    def __init__(self, linkedinDriver: LinkedInDriver):
+    csv_writer: CSVWriter
+    
+    def __init__(self, linkedinDriver: LinkedInDriver, csv_writer: CSVWriter):
         self.linkedinDriver = linkedinDriver
-        self.writer = None
-
-    def initialize_csv_writer(self):
-        file_name = parameters.file_name
-        file_exists = os.path.isfile(file_name)
-        with open(file_name, 'a', newline='') as file:
-            self.writer = csv.writer(file)
-            if not file_exists:
-                self.writer.writerow(['Connection Summary'])
+        self.csv_writer = csv_writer
 
     def process_results(self, linkedin_urls, ignore_list):
         for index, result in enumerate(linkedin_urls, start=1):
@@ -51,7 +45,7 @@ class LinkedInScraper:
                 else:
                     self.print_error(index)
         except:
-            print("something went wrong when processing the request")
+            print("Something went wrong when processing the request")
             return
 
     def send_connection_request(self, connection, index, text):
@@ -61,8 +55,10 @@ class LinkedInScraper:
             time.sleep(WAIT_TIME_SHORT)
             sendButton.click()
             self.print_sent(index, text)
+            self.csv_writer.write(["%s) SENT: %s" % (index, text)])
         except Exception as e:
             self.print_error(index, text)
+            self.csv_writer.write(["%s) CANT: %s" % (index, text)])
         time.sleep(random.randint(WAIT_TIME_SHORT, WAIT_TIME_LONG))
 
     def print_ignored(self, index, text):

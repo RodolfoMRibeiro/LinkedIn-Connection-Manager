@@ -1,3 +1,4 @@
+from linkedin.csv_writer import CSVWriter
 from linkedin.linkedin_driver import LinkedInDriver
 from linkedin.linkedin_login import LinkedInLogin
 from linkedin.linkedin_scraper import LinkedInScraper
@@ -5,16 +6,17 @@ import parameters
 
 def main():
     try:
-        driver = LinkedInDriver()
-        driver.initialize_driver()
+        linkedin_driver = LinkedInDriver()
+        linkedin_driver.initialize_driver()
+        
+        csv_writer = CSVWriter(parameters.file_name)
 
-        login_handler = LinkedInLogin(driver.driver)
+        login_handler = LinkedInLogin(linkedin_driver.driver)
         login_handler.login()
 
-        scraper = LinkedInScraper(driver)
+        scraper = LinkedInScraper(linkedin_driver, csv_writer)
 
         ignore_list = parameters.ignore_list.split(',') if parameters.ignore_list else []
-        scraper.initialize_csv_writer()
 
         for page in range(1, parameters.till_page + 1):
             print(f'\nINFO: Checking on page {page}')
@@ -27,7 +29,7 @@ def main():
     except Exception as e:
         print('ERROR: Unable to run, error - %s' % (e))
     finally:
-        driver.close_driver()
+        linkedin_driver.close_driver()
 
 if __name__ == "__main__":
     main()
