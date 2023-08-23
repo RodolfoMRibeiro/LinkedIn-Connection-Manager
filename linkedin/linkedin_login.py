@@ -1,6 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import sys
 import time
 import parameters
 
@@ -15,6 +16,7 @@ class LinkedInLogin:
     def login(self):
         self._navigate_to_login_page()
         self._enter_credentials_and_submit()
+        self._wait_for_user_authorization()
 
     def _navigate_to_login_page(self):
         self.driver.get(LINKEDIN_LOGIN_URL)
@@ -28,3 +30,10 @@ class LinkedInLogin:
         password_input.send_keys(parameters.linkedin_password)
         submit_button = self.driver.find_element(By.XPATH, '//*[@type="submit"]')
         submit_button.click()
+        
+    def _wait_for_user_authorization(self):
+        if input("\n\nCAN WE PROCEED SCRAPPING? (yes / no) \n\n").lower() == "yes":
+            return
+        else:
+            self.driver.quit()
+            sys.exit()
