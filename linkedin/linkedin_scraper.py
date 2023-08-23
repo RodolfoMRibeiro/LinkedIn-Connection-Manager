@@ -1,9 +1,9 @@
 import time
 import random
-from linkedin.linkedin_driver import LinkedInDriver
 from linkedin.csv_writer import CSVWriter
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from linkedin.linkedin_driver import LinkedInDriver
+from selenium.webdriver.support import expected_conditions as EC
 
 WAIT_TIME_SHORT = 3
 WAIT_TIME_LONG = 5
