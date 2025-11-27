@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Local files
+*.csv
+*.json
+*.html
+profiles.json
+debug_*.html
+linkedin-profile.html
+
+# Logs
+logs/
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs
+README.md
+LICENSE
+
+# Local parameters (use env vars in Docker)
+# Keep parameters.docker.py but ignore local parameters.py
+parameters.py
+!parameters.docker.py
+

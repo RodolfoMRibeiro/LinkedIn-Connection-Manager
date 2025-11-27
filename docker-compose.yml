@@ -1,0 +1,30 @@
+services:
+  linkedin-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: linkedin-scraper-api
+    ports:
+      - "8000:8000"
+    environment:
+      # LinkedIn credentials (use .env file or secrets in production)
+      - LINKEDIN_USERNAME=${LINKEDIN_USERNAME}
+      - LINKEDIN_PASSWORD=${LINKEDIN_PASSWORD}
+      # Force headless mode in container
+      - HEADLESS=true
+      # Chromium paths for container
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
+    volumes:
+      # Persist logs (optional)
+      - ./logs:/app/logs
+    restart: unless-stopped
+    # Increase shared memory for Chromium
+    shm_size: '2gb'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+

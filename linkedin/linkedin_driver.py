@@ -62,17 +62,54 @@ class LinkedInDriver:
         else:
             print("WARN: Chrome binary path not set; relying on system defaults.")
 
-        if getattr(parameters, 'headless', False):
+        # Check if running in Docker/container environment
+        is_docker = self._is_running_in_docker()
+        headless_mode = getattr(parameters, 'headless', False) or is_docker
+        
+        if headless_mode:
             options.add_argument("--headless=new")
             print("INFO: Headless mode enabled.")
         else:
             print("INFO: Running with visible browser window.")
 
+        # Essential options for stability
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         options.add_argument("--remote-allow-origins=*")
+        
+        # Additional options for Docker/headless
+        if headless_mode or is_docker:
+            options.add_argument("--disable-gpu")
+            options.add_argument("--disable-software-rasterizer")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            # Set user agent to avoid detection
+            options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            print("INFO: Docker/container optimizations applied.")
 
         return options
+    
+    def _is_running_in_docker(self) -> bool:
+        """Detect if running inside a Docker container."""
+        # Check for .dockerenv file
+        if os.path.exists('/.dockerenv'):
+            return True
+        
+        # Check cgroup
+        try:
+            with open('/proc/1/cgroup', 'r') as f:
+                return 'docker' in f.read() or 'kubepods' in f.read()
+        except Exception:
+            pass
+        
+        # Check environment variable
+        if os.environ.get('DOCKER_CONTAINER', '').lower() in ('true', '1', 'yes'):
+            return True
+            
+        return False
 
     def _build_startup_strategy(self):
         prefer_selenium_manager = getattr(parameters, 'prefer_selenium_manager', False)
@@ -92,10 +129,17 @@ class LinkedInDriver:
         self.driver = webdriver.Chrome(options=options)
 
     def _start_with_webdriver_manager(self, options):
-        print("INFO: Trying webdriver-manager to resolve the ChromeDriver.")
-        driver_path = ChromeDriverManager().install()
-        print(f"INFO: Using ChromeDriver binary at '{driver_path}'.")
-        self.driver = webdriver.Chrome(service=Service(driver_path), options=options)
+        # Check if there's a system chromedriver path configured
+        system_chromedriver = getattr(parameters, 'chromedriver_path', '').strip()
+        
+        if system_chromedriver and os.path.exists(system_chromedriver):
+            print(f"INFO: Using system ChromeDriver at '{system_chromedriver}'.")
+            self.driver = webdriver.Chrome(service=Service(system_chromedriver), options=options)
+        else:
+            print("INFO: Trying webdriver-manager to resolve the ChromeDriver.")
+            driver_path = ChromeDriverManager().install()
+            print(f"INFO: Using ChromeDriver binary at '{driver_path}'.")
+            self.driver = webdriver.Chrome(service=Service(driver_path), options=options)
 
     def _locate_chrome_binary(self):
         explicit_path = getattr(parameters, 'chrome_binary_path', '').strip() if hasattr(parameters, 'chrome_binary_path') else ''
