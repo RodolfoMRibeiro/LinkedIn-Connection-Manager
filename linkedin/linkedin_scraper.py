@@ -34,6 +34,7 @@ class LinkedInScraper:
             connection = connection_action[0]
             if connection.text == 'Connect':
                 self.send_connection_request(connection, index, text)
+                print("AQUI")
             elif connection.text == 'Pending':
                 self.print_pending(index, text)
             else:
@@ -46,6 +47,7 @@ class LinkedInScraper:
             return
 
     def send_connection_request(self, connection, index, text):
+        return
         try:
             connection.click()
             sendButton = self.linkedinDriver.driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Send')]")

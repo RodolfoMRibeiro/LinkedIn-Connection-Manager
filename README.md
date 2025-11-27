@@ -42,6 +42,9 @@ pip install -r requirements.txt
 
 1. Ensure you have the necessary parameters set in `parameters.py`, including your LinkedIn username, password, and any optional parameters.
 
+   - If Google Chrome lives in a non-standard location on macOS, set `chrome_binary_path` to the full path of the Chrome executable (for example `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
+   - To run the scraper without opening a browser window, set `headless = True`.
+
 2. Run the main script:
 
 ```bash

@@ -18,7 +18,8 @@ def main():
 
         ignore_list = parameters.ignore_list.split(',') if parameters.ignore_list else []
 
-        for page in range(1, parameters.till_page + 1):
+        max_page = int(parameters.till_page)
+        for page in range(1, max_page + 1):
             print(f'\nINFO: Checking on page {page}')
             linkedin_urls = scraper.linkedinDriver.get_search_results(page)
             print(f'INFO: {len(linkedin_urls)} connections found on page {page}')
@@ -28,6 +29,7 @@ def main():
         print("\n\nINFO: User Canceled\n")
     except Exception as e:
         print('ERROR: Unable to run, error - %s' % (e))
+        raise
     finally:
         linkedin_driver.close_driver()
 
