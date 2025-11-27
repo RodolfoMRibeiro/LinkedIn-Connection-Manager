@@ -64,14 +64,25 @@ class LinkedInScraper:
             "div.ph5 h1",
         ])
         headline = self._safe_text(By.CSS_SELECTOR, "div.text-body-medium.break-words")
-        about = self._extract_section_text("about")
-        location_full = self._safe_text(By.CSS_SELECTOR, "div.ph5.pb5 span.text-body-small.inline.t-black--light.break-words")
+        about = self._extract_about_section()
+        location_full = self._safe_text_with_fallbacks([
+            "span.text-body-small.inline.t-black--light.break-words",
+            "div.ph5 span.text-body-small.t-black--light",
+        ])
         first_name, last_name = self._split_name(fullname)
         location_data = self._parse_location(location_full)
-        profile_picture_url = self._safe_attr(By.CSS_SELECTOR, "img.pv-top-card-profile-picture__image", "src")
-        background_picture_url = self._safe_attr(By.CSS_SELECTOR, "img.profile-background-image__image", "src")
-        follower_count = self._extract_stat_number("followers")
-        connection_count = self._extract_stat_number("connections")
+        profile_picture_url = self._safe_attr_with_fallbacks([
+            "img.pv-top-card-profile-picture__image--show",
+            "img.pv-top-card-profile-picture__image",
+            "button.pv-top-card__photo img",
+            "img.EntityPhoto-circle-9",
+        ], "src")
+        background_picture_url = self._safe_attr_with_fallbacks([
+            "img.profile-background-image__image",
+            "div.profile-background-image img",
+        ], "src")
+        follower_count = self._extract_stat_number(["followers", "seguidores"])
+        connection_count = self._extract_connection_count()
         top_skills = self._extract_top_skills()
         public_identifier = self._extract_public_identifier(profile_url)
 
@@ -219,11 +230,22 @@ class LinkedInScraper:
     
     def _looks_like_date(self, text: str) -> bool:
         """Check if text looks like a date string."""
+        # Month names and date-related keywords
         date_keywords = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
-                        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
-                        "momento", "present", "atual", "·", "ano", "year", "mês", "month", "meses", "months"]
+                        "feb", "apr", "may", "aug", "sep", "oct", "dec",
+                        "momento", "present", "atual", "ano ", "year", "mês", "month", "meses", "months"]
         text_lower = text.lower()
-        return any(keyword in text_lower for keyword in date_keywords)
+        
+        # Check for date keywords
+        has_date_keyword = any(keyword in text_lower for keyword in date_keywords)
+        
+        # Also check for year pattern (4 digits between 1900-2100)
+        has_year = bool(re.search(r'\b(19|20)\d{2}\b', text))
+        
+        # Check for date range pattern (contains " - ")
+        has_date_range = " - " in text
+        
+        return has_date_keyword or (has_year and has_date_range)
     
     def _normalize_employment_type(self, raw: str) -> Optional[str]:
         """Normalize employment type to standard format."""
@@ -256,26 +278,57 @@ class LinkedInScraper:
 
         entries = []
         for item in self._list_items(section):
-            school = self._safe_text(By.CSS_SELECTOR, "span.mr1.t-bold span[aria-hidden='true']", parent=item)
-            degree = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal span[aria-hidden='true']", parent=item)
-            description = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal.t-black--light span[aria-hidden='true']", parent=item)
-            logo_url = self._safe_attr(By.CSS_SELECTOR, "img.pvs-entity__image", "src", parent=item)
-            school_url = self._safe_attr(By.CSS_SELECTOR, "a.pvs-entity__path-node", "href", parent=item)
+            # School name - first bold text
+            school = self._safe_text_with_fallbacks([
+                "div.mr1.hoverable-link-text.t-bold span[aria-hidden='true']",
+                "div.mr1.t-bold span[aria-hidden='true']",
+                "span.mr1.t-bold span[aria-hidden='true']",
+                "div.t-bold span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Degree - second line, normal text
+            degree = self._safe_text_with_fallbacks([
+                "span.t-14.t-normal:not(.t-black--light) span[aria-hidden='true']",
+                "span.t-14.t-normal span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Date/duration - in t-black--light span
+            date_text = self._safe_text_with_fallbacks([
+                "span.pvs-entity__caption-wrapper[aria-hidden='true']",
+                "span.t-14.t-normal.t-black--light span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Logo and URL
+            logo_url = self._safe_attr_with_fallbacks([
+                "img.ivm-view-attr__img--centered",
+                "img.EntityPhoto-square-3",
+                "img[alt*='Logo']",
+            ], "src", parent=item)
+            
+            school_url = self._safe_attr_with_fallbacks([
+                "a[data-field='education_school_logo']",
+                "a[href*='/school/']",
+                "a[href*='/company/']",
+            ], "href", parent=item)
 
-            date_range = self._parse_date_range(description)
+            date_range = self._parse_date_range(date_text)
+            
+            # Skip empty entries
+            if not school and not degree:
+                continue
 
             entry = {
                 "school": school,
                 "degree": degree,
                 "degree_name": degree,
                 "field_of_study": None,
-                "duration": description if date_range.duration is None else date_range.duration,
+                "duration": date_text if date_range.duration is None else date_range.duration,
                 "school_linkedin_url": school_url,
                 "school_logo_url": logo_url,
                 "start_date": date_range.start,
                 "end_date": date_range.end,
                 "school_id": self._extract_company_id_from_url(school_url),
-                "description": description,
+                "description": date_text,
             }
             entries.append(entry)
 
@@ -288,9 +341,29 @@ class LinkedInScraper:
 
         entries = []
         for item in self._list_items(section):
-            name = self._safe_text(By.CSS_SELECTOR, "span.mr1.t-bold span[aria-hidden='true']", parent=item)
-            issuer = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal span[aria-hidden='true']", parent=item)
-            issued = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal.t-black--light span[aria-hidden='true']", parent=item)
+            # Certification name - bold text
+            name = self._safe_text_with_fallbacks([
+                "div.mr1.hoverable-link-text.t-bold span[aria-hidden='true']",
+                "div.mr1.t-bold span[aria-hidden='true']",
+                "span.mr1.t-bold span[aria-hidden='true']",
+                "div.t-bold span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Issuer - normal text
+            issuer = self._safe_text_with_fallbacks([
+                "span.t-14.t-normal:not(.t-black--light) span[aria-hidden='true']",
+                "span.t-14.t-normal span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Issue date - light text
+            issued = self._safe_text_with_fallbacks([
+                "span.pvs-entity__caption-wrapper[aria-hidden='true']",
+                "span.t-14.t-normal.t-black--light span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Skip empty entries
+            if not name and not issuer:
+                continue
 
             entries.append({
                 "name": name,
@@ -307,8 +380,24 @@ class LinkedInScraper:
 
         entries = []
         for item in self._list_items(section):
-            language = self._safe_text(By.CSS_SELECTOR, "span.mr1.t-bold span[aria-hidden='true']", parent=item)
-            proficiency = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal span[aria-hidden='true']", parent=item)
+            # Language name - bold text
+            language = self._safe_text_with_fallbacks([
+                "div.mr1.t-bold span[aria-hidden='true']",
+                "span.mr1.t-bold span[aria-hidden='true']",
+                "div.t-bold span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Proficiency - in caption wrapper or normal text
+            proficiency = self._safe_text_with_fallbacks([
+                "span.pvs-entity__caption-wrapper[aria-hidden='true']",
+                "span.t-14.t-normal.t-black--light span[aria-hidden='true']",
+                "span.t-14.t-normal span[aria-hidden='true']",
+            ], parent=item)
+            
+            # Skip empty entries
+            if not language:
+                continue
+            
             entries.append({
                 "language": language,
                 "proficiency": proficiency,
@@ -501,6 +590,55 @@ class LinkedInScraper:
         if not section:
             return ""
         return self._safe_text(By.CSS_SELECTOR, "div.inline-show-more-text span[aria-hidden='true']", parent=section)
+    
+    def _extract_about_section(self) -> str:
+        """Extract about section text with multiple fallback selectors."""
+        # Try to find the about section
+        section = self._find_section("about")
+        if section:
+            text = self._safe_text_with_fallbacks([
+                "div.inline-show-more-text span[aria-hidden='true']",
+                "div[class*='inline-show-more-text'] span[aria-hidden='true']",
+                "span[aria-hidden='true']",
+            ], parent=section)
+            if text:
+                return text
+        
+        # Fallback: search for the about text directly in the page
+        about_selectors = [
+            "section.pv-about-section div.inline-show-more-text span",
+            "div[data-generated-suggestion-target] div.inline-show-more-text span[aria-hidden='true']",
+        ]
+        for selector in about_selectors:
+            text = self._safe_text(By.CSS_SELECTOR, selector)
+            if text:
+                return text
+        
+        return ""
+    
+    def _extract_connection_count(self) -> Optional[int]:
+        """Extract connection count from profile."""
+        # Try to find connection count in various formats
+        selectors = [
+            "span.t-bold",  # "+ de 500 conexões"
+            "li.text-body-small span",
+        ]
+        for selector in selectors:
+            elements = self._find_elements(By.CSS_SELECTOR, selector)
+            for elem in elements:
+                text = elem.text.lower()
+                if "conexões" in text or "connections" in text:
+                    # Handle "500+" or "500" or "+ de 500"
+                    match = re.search(r"(\d[\d,\.]*)", text.replace(".", "").replace(",", ""))
+                    if match:
+                        try:
+                            return int(match.group(1))
+                        except ValueError:
+                            pass
+                    # Handle "500+" format
+                    if "500" in text:
+                        return 500
+        return None
 
     def _split_name(self, fullname: str):
         if not fullname:
@@ -528,20 +666,25 @@ class LinkedInScraper:
             "country_code": None,
         }
 
-    def _extract_stat_number(self, label: str) -> Optional[int]:
+    def _extract_stat_number(self, labels: List[str]) -> Optional[int]:
+        """Extract a stat number by searching for labels in stat elements."""
+        if isinstance(labels, str):
+            labels = [labels]
+        
         items = self.driver.find_elements(By.CSS_SELECTOR, "li.inline.t-16.t-black.t-normal")
         for item in items:
             text = item.text.lower()
-            if label in text:
-                match = re.search(r"(\d[\d,\.+]*)", item.text)
-                if match:
-                    number = match.group(1).replace(",", "").replace(".", "")
-                    if "+" in number:
-                        number = number.replace("+", "")
-                    try:
-                        return int(number)
-                    except ValueError:
-                        return None
+            for label in labels:
+                if label.lower() in text:
+                    match = re.search(r"(\d[\d,\.+]*)", item.text)
+                    if match:
+                        number = match.group(1).replace(",", "").replace(".", "")
+                        if "+" in number:
+                            number = number.replace("+", "")
+                        try:
+                            return int(number)
+                        except ValueError:
+                            return None
         return None
 
     def _extract_top_skills(self) -> List[str]:
@@ -550,8 +693,13 @@ class LinkedInScraper:
             return []
         skills = []
         for item in self._list_items(section):
-            skill = self._safe_text(By.CSS_SELECTOR, "span.mr1.t-bold span[aria-hidden='true']", parent=item)
-            if skill:
+            skill = self._safe_text_with_fallbacks([
+                "div.mr1.hoverable-link-text.t-bold span[aria-hidden='true']",
+                "div.mr1.t-bold span[aria-hidden='true']",
+                "span.mr1.t-bold span[aria-hidden='true']",
+                "div.t-bold span[aria-hidden='true']",
+            ], parent=item)
+            if skill and skill not in skills:
                 skills.append(skill)
         return skills[:10]
 
@@ -577,7 +725,10 @@ class LinkedInScraper:
         dates = [segment.strip() for segment in date_part.split(" - ")]
         start = self._build_date_dict(dates[0]) if dates else None
         end_raw = dates[1] if len(dates) > 1 else None
-        is_current = end_raw is None or end_raw.lower() in ("present", "atual")
+        
+        # Check if current position - handle multiple languages
+        current_keywords = ["present", "atual", "o momento", "momento", "now", "currently"]
+        is_current = end_raw is None or any(kw in end_raw.lower() for kw in current_keywords)
         end = None if is_current else self._build_date_dict(end_raw)
 
         return DateRange(start=start, end=end, is_current=is_current, duration=duration_part)
@@ -585,11 +736,36 @@ class LinkedInScraper:
     def _build_date_dict(self, value: Optional[str]) -> Optional[Dict[str, Optional[str]]]:
         if not value:
             return None
-        tokens = value.split()
-        if len(tokens) == 2:
-            return {"year": int(tokens[1]) if tokens[1].isdigit() else None, "month": tokens[0]}
-        if tokens and tokens[0].isdigit():
-            return {"year": int(tokens[0]), "month": None}
+        
+        # Month name mapping (Portuguese and English)
+        month_map = {
+            "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
+            "jul": 7, "ago": 8, "set": 9, "out": 10, "nov": 11, "dez": 12,
+            "feb": 2, "apr": 4, "may": 5, "aug": 8, "sep": 9, "oct": 10, "dec": 12,
+            "janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4, "maio": 5, "junho": 6,
+            "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
+        }
+        
+        # Clean the value - remove "de" which is common in Portuguese dates
+        cleaned = value.lower().replace(" de ", " ").strip()
+        tokens = cleaned.split()
+        
+        year = None
+        month = None
+        month_name = None
+        
+        for token in tokens:
+            # Check if it's a year (4 digits)
+            if token.isdigit() and len(token) == 4:
+                year = int(token)
+            # Check if it's a month abbreviation
+            elif token[:3] in month_map:
+                month = month_map[token[:3]]
+                month_name = token.capitalize()
+        
+        if year or month:
+            return {"year": year, "month": month_name or (month if month else None)}
+        
         return {"year": None, "month": value}
 
     def _infer_employment_type(self, title: str) -> Optional[str]:

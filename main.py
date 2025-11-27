@@ -22,7 +22,7 @@ def main():
         scraped_profiles = []
         for url in profile_urls:
             try:
-                profile_data = scraper.scrape_profile(url, debug=True)
+                profile_data = scraper.scrape_profile(url)
                 scraped_profiles.append(profile_data)
             except Exception as scrape_error:
                 print(f"ERROR: Failed to scrape {url}: {scrape_error}")
