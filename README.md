@@ -40,12 +40,15 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. Ensure you have the necessary parameters set in `parameters.py`, including your LinkedIn username, password, and any optional parameters.
+1. Configure `parameters.py`:
 
-   - If Google Chrome lives in a non-standard location on macOS, set `chrome_binary_path` to the full path of the Chrome executable (for example `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`).
-   - To run the scraper without opening a browser window, set `headless = True`.
+   - `linkedin_username` and `linkedin_password`: credenciais usadas no login.
+   - `profile_urls`: lista de URLs de perfis que você quer exportar (uma URL por linha).
+   - `output_json_path`: caminho do arquivo JSON que receberá o resultado.
+   - Ajuste `chrome_binary_path` se o Google Chrome estiver em outro caminho no macOS.
+   - Para rodar sem abrir o navegador, defina `headless = True`.
 
-2. Run the main script:
+2. Execute o script principal:
 
 ```bash
 python main.py
@@ -53,7 +56,7 @@ python main.py
 
 The script will prompt you for user confirmation before proceeding with automation.
 
-3. Sit back and let LinkedIn Connection Manager do the heavy lifting!
+3. O JSON com os perfis será salvo no caminho definido em `output_json_path`.
 
 ## License
 

@@ -1,29 +1,34 @@
-from linkedin.csv_writer import CSVWriter
 from linkedin.linkedin_driver import LinkedInDriver
 from linkedin.linkedin_login import LinkedInLogin
 from linkedin.linkedin_scraper import LinkedInScraper
+from linkedin.json_writer import ProfileJSONWriter
 import parameters
 
 def main():
     try:
         linkedin_driver = LinkedInDriver()
         linkedin_driver.initialize_driver()
-        
-        csv_writer = CSVWriter(parameters.file_name)
 
         login_handler = LinkedInLogin(linkedin_driver.driver)
         login_handler.login()
 
-        scraper = LinkedInScraper(linkedin_driver, csv_writer)
+        scraper = LinkedInScraper(linkedin_driver)
+        json_writer = ProfileJSONWriter(parameters.output_json_path)
 
-        ignore_list = parameters.ignore_list.split(',') if parameters.ignore_list else []
+        profile_urls = [url.strip() for url in getattr(parameters, "profile_urls", []) if url.strip()]
+        if not profile_urls:
+            raise ValueError("No profile URLs provided in parameters.profile_urls")
 
-        max_page = int(parameters.till_page)
-        for page in range(1, max_page + 1):
-            print(f'\nINFO: Checking on page {page}')
-            linkedin_urls = scraper.linkedinDriver.get_search_results(page)
-            print(f'INFO: {len(linkedin_urls)} connections found on page {page}')
-            scraper.process_results(linkedin_urls, ignore_list)
+        scraped_profiles = []
+        for url in profile_urls:
+            try:
+                profile_data = scraper.scrape_profile(url)
+                scraped_profiles.append(profile_data)
+            except Exception as scrape_error:
+                print(f"ERROR: Failed to scrape {url}: {scrape_error}")
+
+        json_writer.write(scraped_profiles)
+        print(f"INFO: Saved {len(scraped_profiles)} profiles to {parameters.output_json_path}")
 
     except KeyboardInterrupt:
         print("\n\nINFO: User Canceled\n")
