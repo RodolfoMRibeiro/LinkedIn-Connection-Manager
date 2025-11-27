@@ -13,7 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from linkedin.linkedin_driver import LinkedInDriver
 
 WAIT_TIME_SHORT = 3
-WAIT_TIME_LONG = 5
+WAIT_TIME_LONG = 10  # Increased to allow JS rendering
 
 
 @dataclass
@@ -26,7 +26,7 @@ class DateRange:
 
 class LinkedInScraper:
     linkedinDriver: LinkedInDriver
-
+    
     def __init__(self, linkedinDriver: LinkedInDriver):
         self.linkedinDriver = linkedinDriver
         self.driver = linkedinDriver.driver
@@ -54,7 +54,12 @@ class LinkedInScraper:
 
     # --- extraction helpers -------------------------------------------------
     def _extract_basic_info(self, profile_url: str, experience: List[Dict]) -> Dict:
-        fullname = self._safe_text(By.CSS_SELECTOR, "h1.text-heading-xlarge")
+        fullname = self._safe_text_with_fallbacks([
+            "h1.text-heading-xlarge",
+            "h1[data-generated-suggestion-target]",
+            "section.artdeco-card h1",
+            "div.ph5 h1",
+        ])
         headline = self._safe_text(By.CSS_SELECTOR, "div.text-body-medium.break-words")
         about = self._extract_section_text("about")
         location_full = self._safe_text(By.CSS_SELECTOR, "div.ph5.pb5 span.text-body-small.inline.t-black--light.break-words")
@@ -212,10 +217,37 @@ class LinkedInScraper:
 
     # --- selenium helpers ---------------------------------------------------
     def _wait_for_profile_header(self):
+        """Wait for profile header with multiple fallback selectors."""
+        selectors = [
+            "h1.text-heading-xlarge",  # Standard profile name
+            "h1[data-generated-suggestion-target]",  # Alternative selector
+            "section.artdeco-card h1",  # Profile card header
+            "div.ph5 h1",  # Profile header container
+        ]
+        
+        for selector in selectors:
+            try:
+                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+                print(f"DEBUG: Profile header found with selector: {selector}")
+                return
+            except TimeoutException:
+                continue
+        
+        # If none worked, save HTML for debugging and raise error
+        self._save_debug_html()
+        raise TimeoutException(
+            f"Profile header did not load. Tried selectors: {selectors}. "
+            "Check 'debug_page.html' for the actual page content."
+        )
+    
+    def _save_debug_html(self):
+        """Save current page HTML for debugging purposes."""
         try:
-            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1.text-heading-xlarge")))
-        except TimeoutException:
-            raise TimeoutException("Profile header did not load in time.")
+            with open("debug_page.html", "w", encoding="utf-8") as f:
+                f.write(self.driver.page_source)
+            print("DEBUG: Page HTML saved to 'debug_page.html'")
+        except Exception as e:
+            print(f"DEBUG: Could not save debug HTML: {e}")
 
     def _progressive_scroll(self):
         for _ in range(5):
@@ -260,6 +292,14 @@ class LinkedInScraper:
             return element.text.strip()
         except Exception:
             return ""
+
+    def _safe_text_with_fallbacks(self, selectors: List[str], parent: Optional[WebElement] = None) -> str:
+        """Try multiple CSS selectors and return text from the first match."""
+        for selector in selectors:
+            text = self._safe_text(By.CSS_SELECTOR, selector, parent)
+            if text:
+                return text
+        return ""
 
     def _safe_attr(self, by, value, attr: str, parent: Optional[WebElement] = None) -> Optional[str]:
         try:

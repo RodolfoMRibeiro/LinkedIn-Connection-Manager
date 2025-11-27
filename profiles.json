@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "basic_info": {
+      "fullname": "Guilherme Daniel Rodrigues da Silva",
+      "first_name": "Guilherme",
+      "last_name": "Daniel Rodrigues da Silva",
+      "headline": "Backend developer - Luizalabs",
+      "public_identifier": "guilherme-daniel-35984a1b0",
+      "profile_url": "https://www.linkedin.com/in/guilherme-daniel-35984a1b0",
+      "profile_picture_url": null,
+      "about": "",
+      "location": {
+        "country": "Brasil",
+        "city": "Franca",
+        "full": "Franca, São Paulo, Brasil",
+        "country_code": null
+      },
+      "creator_hashtags": [],
+      "is_creator": false,
+      "is_influencer": false,
+      "is_premium": false,
+      "open_to_work": false,
+      "created_timestamp": null,
+      "show_follower_count": false,
+      "background_picture_url": "https://media.licdn.com/dms/image/v2/D4D16AQEwACEOu7VOzw/profile-displaybackgroundimage-shrink_350_1400/B4DZciBvicGwAc-/0/1748622572531?e=1766016000&v=beta&t=7Gi5gju43QGYMAje4g2ViamQbMTo_1vovay9A13RIxs",
+      "urn": null,
+      "follower_count": null,
+      "connection_count": null,
+      "current_company": null,
+      "current_company_urn": null,
+      "current_company_url": null,
+      "top_skills": [],
+      "email": null
+    },
+    "experience": [],
+    "education": [],
+    "certifications": [],
+    "languages": []
+  }
+]
