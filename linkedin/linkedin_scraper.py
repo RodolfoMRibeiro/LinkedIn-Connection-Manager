@@ -120,43 +120,50 @@ class LinkedInScraper:
 
         entries = []
         for item in self._list_items(section):
+            # Title: look for bold text in the first heading area
             title = self._safe_text_with_fallbacks([
+                "div.display-flex.align-items-center.mr1.hoverable-link-text.t-bold span[aria-hidden='true']",
+                "div.mr1.hoverable-link-text.t-bold span[aria-hidden='true']",
+                "div.t-bold span[aria-hidden='true']",
                 "span.mr1.t-bold span[aria-hidden='true']",
-                "div.display-flex.align-items-center span.t-bold span[aria-hidden='true']",
                 "span.t-bold span[aria-hidden='true']",
-                "div.t-bold span",
             ], parent=item)
             
-            company = self._safe_text_with_fallbacks([
+            # Company: in span.t-14.t-normal (first one, contains company · employment type)
+            company_full = self._safe_text_with_fallbacks([
                 "span.t-14.t-normal span[aria-hidden='true']",
                 "span.t-14.t-normal:not(.t-black--light) span[aria-hidden='true']",
-                "div.t-14.t-normal span[aria-hidden='true']",
             ], parent=item)
+            # Extract just the company name (before the ·)
+            company = company_full.split("·")[0].strip() if company_full else ""
             
+            # Date/duration: in span.pvs-entity__caption-wrapper or span.t-14.t-normal.t-black--light
             meta = self._safe_text_with_fallbacks([
+                "span.pvs-entity__caption-wrapper[aria-hidden='true']",
+                "span.t-14.t-normal.t-black--light span.pvs-entity__caption-wrapper",
                 "span.t-14.t-normal.t-black--light span[aria-hidden='true']",
-                "span.pvs-entity__caption-wrapper span[aria-hidden='true']",
-                "span.t-black--light span[aria-hidden='true']",
             ], parent=item)
             
-            location = self._extract_location_from_item(item)
+            # Location: second span.t-14.t-normal.t-black--light
+            location = self._extract_location_from_experience_item(item)
             
+            # Description: in inline-show-more-text div
             description = self._safe_text_with_fallbacks([
                 "div.inline-show-more-text span[aria-hidden='true']",
-                "div.pvs-list__outer-container div.inline-show-more-text span",
-                "div.display-flex span.t-14.t-normal.t-black span[aria-hidden='true']",
+                "div[class*='inline-show-more-text'] span[aria-hidden='true']",
             ], parent=item)
             
+            # Logo URL
             logo_url = self._safe_attr_with_fallbacks([
-                "img.pvs-entity__image",
                 "img.ivm-view-attr__img--centered",
-                "img[data-delayed-url]",
+                "img.EntityPhoto-square-3",
+                "img[alt*='Logo']",
             ], "src", parent=item)
             
+            # Company URL
             company_url = self._safe_attr_with_fallbacks([
-                "a.pvs-entity__path-node",
+                "a[data-field='experience_company_logo']",
                 "a[href*='/company/']",
-                "div.display-flex a[href*='linkedin.com']",
             ], "href", parent=item)
             
             skills_url = self._safe_attr(By.CSS_SELECTOR, "a[href*='skill-associations']", "href", parent=item)
@@ -166,6 +173,15 @@ class LinkedInScraper:
                 continue
 
             date_range = self._parse_date_range(meta)
+            
+            # Extract employment type from company_full if present
+            employment_type = None
+            if "·" in company_full:
+                emp_type_raw = company_full.split("·")[1].strip() if len(company_full.split("·")) > 1 else ""
+                employment_type = self._normalize_employment_type(emp_type_raw) or self._infer_employment_type(title)
+            else:
+                employment_type = self._infer_employment_type(title)
+            
             entry = {
                 "title": title,
                 "company": company,
@@ -177,7 +193,7 @@ class LinkedInScraper:
                 "is_current": date_range.is_current,
                 "company_linkedin_url": company_url,
                 "company_logo_url": logo_url,
-                "employment_type": self._infer_employment_type(title),
+                "employment_type": employment_type,
                 "location_type": None,
                 "skills": self._extract_skills_from_item(item),
                 "company_id": self._extract_company_id_from_url(company_url),
@@ -186,6 +202,52 @@ class LinkedInScraper:
             entries.append(entry)
 
         return entries
+    
+    def _extract_location_from_experience_item(self, item: WebElement) -> Optional[str]:
+        """Extract location from experience item (usually the second t-black--light span)."""
+        try:
+            spans = item.find_elements(By.CSS_SELECTOR, "span.t-14.t-normal.t-black--light span[aria-hidden='true']")
+            # First span is usually date, second is location
+            for span in spans:
+                text = span.text.strip()
+                # Location typically contains city/country names, not dates
+                if text and not self._looks_like_date(text):
+                    return text
+            return None
+        except Exception:
+            return None
+    
+    def _looks_like_date(self, text: str) -> bool:
+        """Check if text looks like a date string."""
+        date_keywords = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
+                        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+                        "momento", "present", "atual", "·", "ano", "year", "mês", "month", "meses", "months"]
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in date_keywords)
+    
+    def _normalize_employment_type(self, raw: str) -> Optional[str]:
+        """Normalize employment type to standard format."""
+        if not raw:
+            return None
+        raw_lower = raw.lower().strip()
+        mapping = {
+            "tempo integral": "Full-time",
+            "full-time": "Full-time",
+            "meio período": "Part-time",
+            "part-time": "Part-time",
+            "autônomo": "Freelance",
+            "freelance": "Freelance",
+            "contrato": "Contract",
+            "contract": "Contract",
+            "estágio": "Internship",
+            "internship": "Internship",
+            "temporário": "Temporary",
+            "temporary": "Temporary",
+        }
+        for key, value in mapping.items():
+            if key in raw_lower:
+                return value
+        return raw.strip() if raw.strip() else None
 
     def _extract_education(self) -> List[Dict]:
         section = self._find_section("education")
@@ -318,13 +380,36 @@ class LinkedInScraper:
         
         identifiers = section_map.get(section_id, [section_id])
         
-        # Try direct ID/data-section selectors first
+        # Try to find div anchor and get parent section
+        for identifier in identifiers:
+            # First try: find div anchor and navigate to parent section
+            anchor_selectors = [
+                f"div[id='{identifier}']",
+                f"div#'{identifier}'",
+            ]
+            for selector in anchor_selectors:
+                elements = self._find_elements(By.CSS_SELECTOR, selector)
+                if elements:
+                    # Navigate up to find the section container
+                    try:
+                        parent = elements[0].find_element(By.XPATH, "./ancestor::section[contains(@class, 'artdeco-card')]")
+                        print(f"DEBUG: Found section '{section_id}' via anchor div and parent section")
+                        return parent
+                    except Exception:
+                        # Try to find the closest parent with artdeco-card class
+                        try:
+                            parent = elements[0].find_element(By.XPATH, "./ancestor::*[contains(@class, 'artdeco-card')]")
+                            print(f"DEBUG: Found section '{section_id}' via anchor div and artdeco-card parent")
+                            return parent
+                        except Exception:
+                            pass
+        
+        # Second try: direct section selectors
         for identifier in identifiers:
             selectors = [
                 f"section[id='{identifier}']",
                 f"section[data-section='{identifier}']",
                 f"section[data-view-name*='{identifier}']",
-                f"div[id='{identifier}']",
             ]
             for selector in selectors:
                 elements = self._find_elements(By.CSS_SELECTOR, selector)
@@ -332,13 +417,12 @@ class LinkedInScraper:
                     print(f"DEBUG: Found section '{section_id}' with selector: {selector}")
                     return elements[0]
         
-        # Fallback: find by section header text
+        # Third try: find by section header text
         sections = self._find_elements(By.CSS_SELECTOR, "section.artdeco-card")
         for section in sections:
             try:
-                # Check various header selectors
                 header_selectors = [
-                    "div[id*='header'] span",
+                    "h2 span[aria-hidden='true']",
                     "h2 span",
                     ".pvs-header__title span",
                     "span.pvs-header__title-text",
@@ -360,11 +444,14 @@ class LinkedInScraper:
     def _list_items(self, section: WebElement) -> List[WebElement]:
         """Find list items within a section using multiple fallback selectors."""
         selectors = [
-            "li.pvs-list__item--line-separated",
+            # Direct children of the section's list - most specific
+            "ul > li.artdeco-list__item",
             "li.artdeco-list__item",
+            "li.pvs-list__item--line-separated",
             "li.pvs-list__paged-list-item",
-            "ul.pvs-list li",
-            "div.pvs-list__outer-container li",
+            # Fallback to any li in a list container
+            "ul li[class*='list__item']",
+            "div.pvs-list__outer-container > ul > li",
         ]
         for selector in selectors:
             items = section.find_elements(By.CSS_SELECTOR, selector)

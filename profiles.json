@@ -32,8 +32,114 @@
       "top_skills": [],
       "email": null
     },
-    "experience": [],
-    "education": [],
+    "experience": [
+      {
+        "title": "Software Developer",
+        "company": "Luizalabs",
+        "location": null,
+        "description": "Desenvolvo soluções escaláveis e resilientes para o ecossistema Magalu, com foco em performance, observabilidade e boas práticas de engenharia.\n\nResponsabilidades e tecnologias:\n\nCriação e manutenção de APIs RESTful e workers em Go, integrando microsserviços de forma eficiente\n\nDesenvolvimento de sistemas assíncronos utilizando RabbitMQ\n\nExperiência com ambientes em GCP (Google Cloud Platform) e orquestração de containers com Kubernetes\n\nUtilização de Java e Node.js em microsserviços complementares\n\nImplementação e manutenção de pipelines de CI/CD, garantindo entregas contínuas com qualidade\n\nEscrita de testes unitários e foco em código limpo e testável\n\nMonitoramento e observabilidade com Grafana, Datadog e boas práticas de logging\n\nParticipação ativa em code reviews, rituais ágeis (Scrum/Kanban) e decisões técnicas da equipe",
+        "duration": "2 anos 2 meses",
+        "start_date": {
+          "year": null,
+          "month": "out de 2023"
+        },
+        "end_date": {
+          "year": null,
+          "month": "o"
+        },
+        "is_current": false,
+        "company_linkedin_url": "https://www.linkedin.com/company/10435733/",
+        "company_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQGYEfbUwYeVJQ/company-logo_100_100/company-logo_100_100/0/1720719174919/luizalabs_logo?e=1766016000&v=beta&t=AiFk8m8ufnin5H5aG5C4sivTF3Lx54ez_B-aEeBtKdQ",
+        "employment_type": "Full-time",
+        "location_type": null,
+        "skills": [],
+        "company_id": "10435733",
+        "skills_url": "https://www.linkedin.com/in/guilherme-daniel-35984a1b0/overlay/urn:li:fsd_profilePosition:(ACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk,2263480773)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk"
+      },
+      {
+        "title": "Back End Developer",
+        "company": "Quero 2 Pay",
+        "location": "Franca, São Paulo, Brasil",
+        "description": "Desenvolvedor Back-End. \n\nCriação de APIs e Workers em Go e C#.\nMensageria com SQS. Docker.\nTestes unitários.\nTelas com React + TypeScript.",
+        "duration": "2 anos",
+        "start_date": {
+          "year": null,
+          "month": "nov de 2021"
+        },
+        "end_date": {
+          "year": null,
+          "month": "out de 2023"
+        },
+        "is_current": false,
+        "company_linkedin_url": "https://www.linkedin.com/company/65900828/",
+        "company_logo_url": "https://media.licdn.com/dms/image/v2/C4D0BAQEs4yXguxK6zw/company-logo_100_100/company-logo_100_100/0/1671802872221/quero2pay_logo?e=1766016000&v=beta&t=zilcCWB5FIwZIiss2uzkuW2ntVPmv4eqGEbsglWavso",
+        "employment_type": "Full-time",
+        "location_type": null,
+        "skills": [],
+        "company_id": "65900828",
+        "skills_url": "https://www.linkedin.com/in/guilherme-daniel-35984a1b0/overlay/urn:li:fsd_profilePosition:(ACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk,1869597118)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk"
+      },
+      {
+        "title": "Desenvolvedor Estagiário",
+        "company": "Orgsystem Software",
+        "location": "Franca, São Paulo, Brasil",
+        "description": "Desenvolvimento de APIs em C#",
+        "duration": "9 meses",
+        "start_date": {
+          "year": null,
+          "month": "mar de 2021"
+        },
+        "end_date": {
+          "year": null,
+          "month": "nov de 2021"
+        },
+        "is_current": false,
+        "company_linkedin_url": "https://www.linkedin.com/company/2612406/",
+        "company_logo_url": "https://media.licdn.com/dms/image/v2/C4D0BAQHgsIek8r1vWg/company-logo_100_100/company-logo_100_100/0/1631305910911?e=1766016000&v=beta&t=pH7iC_4F3pijtX2-RHmK_iNyNMAoIqK9_v7zqLqyZX0",
+        "employment_type": "Part-time",
+        "location_type": null,
+        "skills": [],
+        "company_id": "2612406",
+        "skills_url": "https://www.linkedin.com/in/guilherme-daniel-35984a1b0/overlay/urn:li:fsd_profilePosition:(ACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk,1756568180)/skill-associations-details?profileUrn=urn%3Ali%3Afsd_profile%3AACoAADE_KXUBoxfPvihO4HapRgYjcuKJUwL6ywk"
+      }
+    ],
+    "education": [
+      {
+        "school": "",
+        "degree": "Ciências da Computação, Tecnologia da Informação",
+        "degree_name": "Ciências da Computação, Tecnologia da Informação",
+        "field_of_study": null,
+        "duration": "jan de 2022 - dez de 2025",
+        "school_linkedin_url": null,
+        "school_logo_url": null,
+        "start_date": {
+          "year": null,
+          "month": "jan de 2022"
+        },
+        "end_date": {
+          "year": null,
+          "month": "dez de 2025"
+        },
+        "school_id": null,
+        "description": "jan de 2022 - dez de 2025"
+      },
+      {
+        "school": "",
+        "degree": "Go expert, Programação de Computadores",
+        "degree_name": "Go expert, Programação de Computadores",
+        "field_of_study": null,
+        "duration": "fev de 2023",
+        "school_linkedin_url": null,
+        "school_logo_url": null,
+        "start_date": {
+          "year": null,
+          "month": "fev de 2023"
+        },
+        "end_date": null,
+        "school_id": null,
+        "description": "fev de 2023"
+      }
+    ],
     "certifications": [
       {
         "name": "",
@@ -46,6 +152,15 @@
         "issued_date": "Emitido em set de 2023 · Expira em set de 2026"
       }
     ],
-    "languages": []
+    "languages": [
+      {
+        "language": "",
+        "proficiency": "Nível avançado"
+      },
+      {
+        "language": "",
+        "proficiency": "Fluente ou nativo"
+      }
+    ]
   }
 ]

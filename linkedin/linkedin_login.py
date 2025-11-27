@@ -32,8 +32,7 @@ class LinkedInLogin:
         submit_button.click()
         
     def _wait_for_user_authorization(self):
-        if input("\n\nCAN WE PROCEED SCRAPPING? (yes / no) \n\n").lower() == "yes":
-            return
-        else:
-            self.driver.quit()
-            sys.exit()
+        print("\n\nCAN WE PROCEED SCRAPPING? Auto-accepting in 5 seconds...\n")
+        time.sleep(5)
+        print("Proceeding with scraping...\n")
+        return
