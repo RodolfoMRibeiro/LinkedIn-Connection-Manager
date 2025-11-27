@@ -34,7 +34,18 @@
     },
     "experience": [],
     "education": [],
-    "certifications": [],
+    "certifications": [
+      {
+        "name": "",
+        "issuer": "Cambridge University Press & Assessment",
+        "issued_date": "Verificação emitida em jan de 2025"
+      },
+      {
+        "name": "",
+        "issuer": "Amazon Web Services (AWS)",
+        "issued_date": "Emitido em set de 2023 · Expira em set de 2026"
+      }
+    ],
     "languages": []
   }
 ]

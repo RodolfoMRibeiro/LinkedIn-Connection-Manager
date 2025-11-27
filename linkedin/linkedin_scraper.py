@@ -32,12 +32,15 @@ class LinkedInScraper:
         self.driver = linkedinDriver.driver
         self.wait = WebDriverWait(self.driver, WAIT_TIME_LONG * 2)
 
-    def scrape_profile(self, profile_url: str) -> Dict:
+    def scrape_profile(self, profile_url: str, debug: bool = False) -> Dict:
         print(f"INFO: Loading profile {profile_url}")
         self.driver.get(profile_url)
         self._wait_for_profile_header()
         self._progressive_scroll()
         self._expand_all_show_more_buttons()
+        
+        if debug:
+            self._save_debug_html("debug_after_scroll.html")
 
         experience = self._extract_experience()
 
@@ -117,14 +120,50 @@ class LinkedInScraper:
 
         entries = []
         for item in self._list_items(section):
-            title = self._safe_text(By.CSS_SELECTOR, "span.mr1.t-bold span[aria-hidden='true']", parent=item)
-            company = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal span[aria-hidden='true']", parent=item)
-            meta = self._safe_text(By.CSS_SELECTOR, "span.t-14.t-normal.t-black--light span[aria-hidden='true']", parent=item)
+            title = self._safe_text_with_fallbacks([
+                "span.mr1.t-bold span[aria-hidden='true']",
+                "div.display-flex.align-items-center span.t-bold span[aria-hidden='true']",
+                "span.t-bold span[aria-hidden='true']",
+                "div.t-bold span",
+            ], parent=item)
+            
+            company = self._safe_text_with_fallbacks([
+                "span.t-14.t-normal span[aria-hidden='true']",
+                "span.t-14.t-normal:not(.t-black--light) span[aria-hidden='true']",
+                "div.t-14.t-normal span[aria-hidden='true']",
+            ], parent=item)
+            
+            meta = self._safe_text_with_fallbacks([
+                "span.t-14.t-normal.t-black--light span[aria-hidden='true']",
+                "span.pvs-entity__caption-wrapper span[aria-hidden='true']",
+                "span.t-black--light span[aria-hidden='true']",
+            ], parent=item)
+            
             location = self._extract_location_from_item(item)
-            description = self._safe_text(By.CSS_SELECTOR, "div.inline-show-more-text span[aria-hidden='true']", parent=item)
-            logo_url = self._safe_attr(By.CSS_SELECTOR, "img.pvs-entity__image", "src", parent=item)
-            company_url = self._safe_attr(By.CSS_SELECTOR, "a.pvs-entity__path-node", "href", parent=item)
+            
+            description = self._safe_text_with_fallbacks([
+                "div.inline-show-more-text span[aria-hidden='true']",
+                "div.pvs-list__outer-container div.inline-show-more-text span",
+                "div.display-flex span.t-14.t-normal.t-black span[aria-hidden='true']",
+            ], parent=item)
+            
+            logo_url = self._safe_attr_with_fallbacks([
+                "img.pvs-entity__image",
+                "img.ivm-view-attr__img--centered",
+                "img[data-delayed-url]",
+            ], "src", parent=item)
+            
+            company_url = self._safe_attr_with_fallbacks([
+                "a.pvs-entity__path-node",
+                "a[href*='/company/']",
+                "div.display-flex a[href*='linkedin.com']",
+            ], "href", parent=item)
+            
             skills_url = self._safe_attr(By.CSS_SELECTOR, "a[href*='skill-associations']", "href", parent=item)
+
+            # Skip if we couldn't extract the essential info
+            if not title and not company:
+                continue
 
             date_range = self._parse_date_range(meta)
             entry = {
@@ -240,12 +279,12 @@ class LinkedInScraper:
             "Check 'debug_page.html' for the actual page content."
         )
     
-    def _save_debug_html(self):
+    def _save_debug_html(self, filename: str = "debug_page.html"):
         """Save current page HTML for debugging purposes."""
         try:
-            with open("debug_page.html", "w", encoding="utf-8") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 f.write(self.driver.page_source)
-            print("DEBUG: Page HTML saved to 'debug_page.html'")
+            print(f"DEBUG: Page HTML saved to '{filename}'")
         except Exception as e:
             print(f"DEBUG: Could not save debug HTML: {e}")
 
@@ -266,19 +305,73 @@ class LinkedInScraper:
                     continue
 
     def _find_section(self, section_id: str) -> Optional[WebElement]:
-        selectors = [
-            f"section[id='{section_id}']",
-            f"section[data-section='{section_id}']",
-            f"section[data-view-name*='{section_id}']",
-        ]
-        for selector in selectors:
-            elements = self._find_elements(By.CSS_SELECTOR, selector)
-            if elements:
-                return elements[0]
+        """Find profile section by various possible identifiers."""
+        # Map section names to possible identifiers
+        section_map = {
+            "experience": ["experience", "experiência"],
+            "education": ["education", "educação", "formação"],
+            "licenses_and_certifications": ["licenses", "certifications", "licenças", "certificações"],
+            "languages": ["languages", "idiomas"],
+            "skills": ["skills", "competências", "habilidades"],
+            "about": ["about", "sobre"],
+        }
+        
+        identifiers = section_map.get(section_id, [section_id])
+        
+        # Try direct ID/data-section selectors first
+        for identifier in identifiers:
+            selectors = [
+                f"section[id='{identifier}']",
+                f"section[data-section='{identifier}']",
+                f"section[data-view-name*='{identifier}']",
+                f"div[id='{identifier}']",
+            ]
+            for selector in selectors:
+                elements = self._find_elements(By.CSS_SELECTOR, selector)
+                if elements:
+                    print(f"DEBUG: Found section '{section_id}' with selector: {selector}")
+                    return elements[0]
+        
+        # Fallback: find by section header text
+        sections = self._find_elements(By.CSS_SELECTOR, "section.artdeco-card")
+        for section in sections:
+            try:
+                # Check various header selectors
+                header_selectors = [
+                    "div[id*='header'] span",
+                    "h2 span",
+                    ".pvs-header__title span",
+                    "span.pvs-header__title-text",
+                ]
+                for header_selector in header_selectors:
+                    headers = section.find_elements(By.CSS_SELECTOR, header_selector)
+                    for header in headers:
+                        header_text = header.text.strip().lower()
+                        for identifier in identifiers:
+                            if identifier.lower() in header_text:
+                                print(f"DEBUG: Found section '{section_id}' by header text: '{header_text}'")
+                                return section
+            except Exception:
+                continue
+        
+        print(f"DEBUG: Section '{section_id}' not found")
         return None
 
     def _list_items(self, section: WebElement) -> List[WebElement]:
-        return section.find_elements(By.CSS_SELECTOR, "li.pvs-list__item--line-separated")
+        """Find list items within a section using multiple fallback selectors."""
+        selectors = [
+            "li.pvs-list__item--line-separated",
+            "li.artdeco-list__item",
+            "li.pvs-list__paged-list-item",
+            "ul.pvs-list li",
+            "div.pvs-list__outer-container li",
+        ]
+        for selector in selectors:
+            items = section.find_elements(By.CSS_SELECTOR, selector)
+            if items:
+                print(f"DEBUG: Found {len(items)} items with selector: {selector}")
+                return items
+        return []
 
     def _find_elements(self, by, value) -> List[WebElement]:
         try:
@@ -307,6 +400,14 @@ class LinkedInScraper:
             return element.get_attribute(attr)
         except Exception:
             return None
+
+    def _safe_attr_with_fallbacks(self, selectors: List[str], attr: str, parent: Optional[WebElement] = None) -> Optional[str]:
+        """Try multiple CSS selectors and return attribute from the first match."""
+        for selector in selectors:
+            value = self._safe_attr(By.CSS_SELECTOR, selector, attr, parent)
+            if value:
+                return value
+        return None
 
     def _extract_section_text(self, section_id: str) -> str:
         section = self._find_section(section_id)
